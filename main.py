@@ -1,10 +1,13 @@
-import logging
 import json
+import logging
+import spacy
+
+from collections import defaultdict
+from datetime import datetime
+from keybert import KeyBERT
 from transformers import pipeline
 from tqdm import tqdm
-import spacy
 from transformers import pipeline
-from keybert import KeyBERT
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 kw_model = KeyBERT()
@@ -12,17 +15,16 @@ nlp = spacy.load("en_core_web_sm")
 sentiment_pipeline = pipeline("sentiment-analysis")
 
 DATA_SOURCE = "data.json"
-OUTPUT_DATA = "output.json"
+OUTPUT_DATA = f"{datetime.now().strftime('%Y-%m-%d-%H:%M')}-output-data.json"
 
-
-def extract_categories(text, context):
+def extract_categories_with_context(text, context):
     doc = nlp(text + " " + context)
     entities = {ent.text.upper() for ent in doc.ents}
     keywords = kw_model.extract_keywords(text, keyphrase_ngram_range=(1, 2), stop_words='english')
     keyphrases = {kw[0].upper() for kw in keywords}
     categories = list(entities | keyphrases)
-    return categories[:5]
-
+    split_list = [word for item in categories[:5] for word in item.split()]
+    return list(set(split_list))
 
 if __name__ == "__main__":
     with open(DATA_SOURCE, "r", encoding="utf-8") as f:
@@ -30,7 +32,7 @@ if __name__ == "__main__":
 
     output_data = []
     for entry in tqdm(input_data, desc="Running analysis ..."):
-        categories = extract_categories(entry["body"], entry["posted_in"])
+        categories = extract_categories_with_context(entry["body"], entry["posted_in"])
         sentiment_result = sentiment_pipeline(entry["body"])[0]
         output_entry = {
                 "unix_timestamp": entry["unix_timestamp"],
