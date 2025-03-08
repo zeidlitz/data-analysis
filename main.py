@@ -26,7 +26,7 @@ def extract_categories_with_context(text, context):
     split_list = [word for item in categories[:5] for word in item.split()]
     return list(set(split_list))
 
-if __name__ == "__main__":
+def main():
     with open(DATA_SOURCE, "r", encoding="utf-8") as f:
         input_data = json.load(f)
 
@@ -48,3 +48,6 @@ if __name__ == "__main__":
         json.dump(output_data, f, indent=4)
 
     logging.info("Analysis complete")
+
+if __name__ == "__main__":
+    main()
