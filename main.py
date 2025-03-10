@@ -35,11 +35,11 @@ def main():
         sentiment_result = sentiment_pipeline(entry["body"])[0]
         output_entry = {
                 "source": entry["source"],
-                "subreddit": entry["subreddit"],
+                "subsource": entry["subsource"],
                 "unix_timestamp": entry["unix_timestamp"],
                 "posted_in": entry["posted_in"],
                 "category": categories,
-                "label": sentiment_result["label"]
+                "sentiment": sentiment_result["label"]
         }
         output_data.append(output_entry)
 
