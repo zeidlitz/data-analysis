@@ -2,7 +2,6 @@ import json
 import logging
 import spacy
 
-from collections import defaultdict
 from datetime import datetime
 from keybert import KeyBERT
 from transformers import pipeline
@@ -35,8 +34,9 @@ def main():
         categories = extract_categories_with_context(entry["body"], entry["posted_in"])
         sentiment_result = sentiment_pipeline(entry["body"])[0]
         output_entry = {
+                "source": entry["source"],
+                "subreddit": entry["subreddit"],
                 "unix_timestamp": entry["unix_timestamp"],
-                "utc_timestamp": entry["utc_timestamp"],
                 "posted_in": entry["posted_in"],
                 "category": categories,
                 "label": sentiment_result["label"]
