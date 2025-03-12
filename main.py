@@ -23,6 +23,16 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 
 redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
 
+
+def create_redis_consumer_group():
+    try:
+        logging.info(f"Creating consumer group {CONSUMER_GROUP} for {CONSUMER_STREAM}")
+        redis_client.xgroup_create(CONSUMER_STREAM, CONSUMER_GROUP, id='0', mkstream=True)
+    except Exception as e:
+        logging.info(f"Exception {e}")
+        pass
+
+
 def extract_categories_with_context(text, context):
     doc = nlp(text + " " + context)
     entities = {ent.text.upper() for ent in doc.ents}
@@ -68,6 +78,7 @@ def publish_data(data):
 
 
 def main():
+    create_redis_consumer_group()
     while True:
         data = consume_stream()
         output_data = analyze_data(data)
