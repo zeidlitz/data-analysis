@@ -1,0 +1,8 @@
+# Example configration
+redis:
+  host: "localhost"
+  port: 6379
+consumer_stream: "data_extraction"
+producer_stream: "data_analysis"
+consumer_group: "data_analysis"
+consumer_name: "analysis"

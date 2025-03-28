@@ -1,25 +1,32 @@
-import os
 import json
+import yaml
 import redis
 import logging
 import spacy
 
-from dotenv import load_dotenv
 from keybert import KeyBERT
 from transformers import pipeline
 
-load_dotenv()
+CONFIG_PATH = "/etc/data-analysis/config.yaml"
+
+def load_config(path):
+    with open(path, "r") as file:
+        return yaml.safe_load(file)
+
+config = load_config(CONFIG_PATH)
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
 kw_model = KeyBERT()
 nlp = spacy.load("en_core_web_sm")
 sentiment_pipeline = pipeline("sentiment-analysis")
 
-CONSUMER_STREAM = os.getenv("CONSUMER_STREAM", "data_extraction")
-PRODUCER_STREAM = os.getenv("PRODUCER_STREAM ","data_analysis")
-CONSUMER_GROUP = os.getenv("CONSUMER_GROUP ","data_analysis")
-CONSUMER_NAME = os.getenv("CONSUMER_NAME","analysis")
-REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+CONSUMER_STREAM = config.get("consumer_stream", "data_extraction")
+PRODUCER_STREAM = config.get("producer_stream ","data_analysis")
+CONSUMER_GROUP = config.get("consumer_group ","data_analysis")
+CONSUMER_NAME = config.get("consumer_name","analysis")
+REDIS_HOST = config.get("redis", {}).get("host", "localhost")
+REDIS_PORT = config.get("redis", {}).get("port", 6379)
 
 redis_client = redis.Redis(host='localhost', port=6379, decode_responses=True)
 
