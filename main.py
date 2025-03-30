@@ -8,6 +8,7 @@ from keybert import KeyBERT
 from transformers import pipeline
 
 CONFIG_PATH = "/etc/data-analysis/config.yaml"
+VERSION_FILE = "VERSION"
 
 def load_config(path):
     with open(path, "r") as file:
@@ -40,8 +41,8 @@ def create_redis_consumer_group():
         pass
 
 
-def extract_categories_with_context(text, context):
-    doc = nlp(text + " " + context)
+def categorize_text(text):
+    doc = nlp(text)
     entities = {ent.text.upper() for ent in doc.ents}
     keywords = kw_model.extract_keywords(text, keyphrase_ngram_range=(1, 2), stop_words='english')
     keyphrases = {kw[0].upper() for kw in keywords}
@@ -66,7 +67,7 @@ def consume_stream():
 def analyze_data(data):
     output_data = []
     for entry in data:
-        categories = extract_categories_with_context(entry["body"], entry["posted_in"])
+        categories = categorize_text(entry["body"])
         sentiment_result = sentiment_pipeline(entry["body"])[0]
         output_entry = {
                 "source": entry["source"],
@@ -83,8 +84,13 @@ def publish_data(data):
     logging.info(f"Publishing {len(data)} to {REDIS_HOST}:{REDIS_PORT}:{PRODUCER_STREAM}")
     redis_client.xadd(PRODUCER_STREAM, {"data": data})
 
+def get_version():
+    with open("VERSION") as f:
+        return f.read().strip()
 
 def main():
+    __version__ = get_version()
+    logging.info(f"Running version {__version__}")
     create_redis_consumer_group()
     while True:
         data = consume_stream()
