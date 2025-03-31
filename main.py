@@ -74,6 +74,7 @@ def analyze_data(data):
                 "subsource": entry["subsource"],
                 "unix_timestamp": entry["unix_timestamp"],
                 "posted_in": entry["posted_in"],
+                "body" : entry["body"],
                 "category": categories,
                 "sentiment": sentiment_result["label"]
         }
