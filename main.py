@@ -45,12 +45,12 @@ def create_redis_client(host, port, decode_responses) -> redis.Redis:
 
 
 def create_redis_consumer_group(
-    redis_client, consumer_stream, consumer_group, id, mkstream
+    redis_client, consumer_stream, consumer_group, _id, mkstream
 ):
     try:
         logging.info(f"Creating consumer group {consumer_group} for {consumer_stream}")
         redis_client.xgroup_create(
-            consumer_stream, consumer_group, id=id, mkstream=mkstream
+            consumer_stream, consumer_group, id=_id, mkstream=mkstream
         )
     except Exception as e:
         logging.info(f"Exception {e}")
