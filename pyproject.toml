@@ -24,4 +24,4 @@ dependencies = [
 ]
 
 [project.scripts]
-run-extractor = "data_analysis.main:main"
+run-analysis = "data_analysis.main:main"
