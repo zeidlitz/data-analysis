@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "data-analysis"
+version = "1.0.2"
+description = "Extracts keywords from text, runs sentiment analysis on those keywords and publish to redis"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Apache-2.0"}
+dependencies = [
+  "numpy",
+  "pyyaml",
+  "python-dotenv",
+  "redis",
+  "pandas",
+  "spacy",
+  "keybert",
+  "transformers",
+  "torch",
+  "scikit-learn",
+  "nltk",
+]
+
+[project.scripts]
+run-extractor = "data_analysis.main:main"

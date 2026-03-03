@@ -5,6 +5,7 @@ import redis
 import logging
 import sys
 import spacy
+from importlib.metadata import version, PackageNotFoundError
 
 from keybert import KeyBERT
 from transformers import pipeline
@@ -19,8 +20,14 @@ class ParseException(Exception):
 
 
 def get_version():
-    with open("VERSION") as f:
-        return f.read().strip()
+    __version__ = "unknown"
+    try:
+        __version__ = version("data-extraction")
+    except PackageNotFoundError:
+        logging.warning(
+            "could not read pacakge version, ensure project is installed properly"
+        )
+    return __version__
 
 
 def parse_args():
