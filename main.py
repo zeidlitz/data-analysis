@@ -1,4 +1,3 @@
-import json
 import os
 import yaml
 import redis
@@ -6,6 +5,7 @@ import logging
 import sys
 import spacy
 from importlib.metadata import version, PackageNotFoundError
+from data_models.v1.data_models_pb2 import RedditData, AnalysisResult
 
 from keybert import KeyBERT
 from transformers import pipeline
@@ -86,33 +86,29 @@ def consume_stream(redis_client, consumer_group, consumer_name, consumer_stream)
                 count=1,
                 block=5000,
             )
-            logging.info(f"consuming messages from {consumer_stream}")
             if messages:
-                logging.info(f"message received!")
+                logging.info(f"message received from {consumer_stream}")
                 for _, message_list in messages:
                     for message_id, message in message_list:
+                        raw_data = message.get(b"data") or message.get("data")
+                        data = RedditData()
+                        data.ParseFromString(raw_data)
                         redis_client.xack(consumer_stream, consumer_group, message_id)
-                        return json.loads(message["data"])
-        except Exception:
+                        return data
+        except Exception as e:
+            logging.error(f"error consuming from stream: {e}")
             return None
 
 
 def analyze_data(data, nlp, kw_model, sentiment_pipeline):
-    output_data = []
+    analysis_result = AnalysisResult()
     for entry in data:
         categories = categorize_text(nlp, kw_model, entry["body"])
         sentiment_result = sentiment_pipeline(entry["body"])[0]
-        output_entry = {
-            "source": entry["source"],
-            "subsource": entry["subsource"],
-            "unix_timestamp": entry["unix_timestamp"],
-            "posted_in": entry["posted_in"],
-            "body": entry["body"],
-            "category": categories,
-            "sentiment": sentiment_result["label"],
-        }
-        output_data.append(output_entry)
-    return json.dumps(output_data)
+        analysis_result.raw_data = data
+        analysis_result.categories = categories
+        analysis_result.sentiment = sentiment_result["label"]
+    return analysis_result
 
 
 def publish_data(redis_client, producer_stream, data):
@@ -136,7 +132,7 @@ def main():
         os._exit(1)
 
     consumer_stream = config.get("consumer_stream", "data_extraction")
-    producer_stream = config.get("producer_stream ", "data_analysis")
+    # producer_stream = config.get("producer_stream ", "data_analysis")
     consumer_group = config.get("consumer_group ", "data_analysis")
     consumer_name = config.get("consumer_name", "analysis")
     redis_host = config.get("redis", {}).get("host", "localhost")
@@ -157,7 +153,8 @@ def main():
             logging.error(e)
             continue
         output_data = analyze_data(data, nlp, kw_model, sentiment_pipeline)
-        publish_data(redis_client, producer_stream, output_data)
+        # publish_data(redis_client, producer_stream, output_data)
+        logging.info("publishing data", output_data)
 
 
 if __name__ == "__main__":

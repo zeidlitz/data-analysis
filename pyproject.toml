@@ -21,6 +21,7 @@ dependencies = [
   "torch",
   "scikit-learn",
   "nltk",
+  "data-models @ git+https://github.com/zeidlitz/data-models.git"
 ]
 
 [project.scripts]
