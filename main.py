@@ -102,18 +102,18 @@ def consume_stream(redis_client, consumer_group, consumer_name, consumer_stream)
 
 def analyze_data(data, nlp, kw_model, sentiment_pipeline):
     analysis_result = AnalysisResult()
-    for entry in data:
-        categories = categorize_text(nlp, kw_model, entry["body"])
-        sentiment_result = sentiment_pipeline(entry["body"])[0]
-        analysis_result.raw_data = data
-        analysis_result.categories = categories
-        analysis_result.sentiment = sentiment_result["label"]
+    categories = categorize_text(nlp, kw_model, data.body)
+    sentiment_result = sentiment_pipeline(data.body)[0]
+    analysis_result.raw_data = data
+    analysis_result.categories = categories
+    analysis_result.sentiment = sentiment_result["label"]
     return analysis_result
 
 
 def publish_data(redis_client, producer_stream, data):
     logging.info(f"publishing {len(data)} to {producer_stream}")
-    redis_client.xadd(producer_stream, {"data": data})
+    serialized_data = data.SerializeToString()
+    redis_client.xadd(producer_stream, {"data": serialized_data})
 
 
 def main():
@@ -132,7 +132,7 @@ def main():
         os._exit(1)
 
     consumer_stream = config.get("consumer_stream", "data_extraction")
-    # producer_stream = config.get("producer_stream ", "data_analysis")
+    producer_stream = config.get("producer_stream ", "data_analysis")
     consumer_group = config.get("consumer_group ", "data_analysis")
     consumer_name = config.get("consumer_name", "analysis")
     redis_host = config.get("redis", {}).get("host", "localhost")
@@ -153,7 +153,7 @@ def main():
             logging.error(e)
             continue
         output_data = analyze_data(data, nlp, kw_model, sentiment_pipeline)
-        # publish_data(redis_client, producer_stream, output_data)
+        publish_data(redis_client, producer_stream, output_data)
         logging.info("publishing data", output_data)
 
 
