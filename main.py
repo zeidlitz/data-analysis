@@ -157,8 +157,6 @@ def main():
             continue
         output_data = analyze_data(data, nlp, kw_model, sentiment_pipeline)
         publish_data(redis_client, producer_stream, output_data)
-        logging.info("publishing data", output_data)
-
 
 if __name__ == "__main__":
     main()
