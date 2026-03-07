@@ -104,17 +104,15 @@ def analyze_data(data, nlp, kw_model, sentiment_pipeline):
     analysis_result = AnalysisResult()
     categories = categorize_text(nlp, kw_model, data.body)
     sentiment_result = sentiment_pipeline(data.body)[0]
-    analysis_result.raw_data = data
-    analysis_result.categories = categories
+    analysis_result.raw_data.CopyFrom(data)
+    analysis_result.categories.extend(categories)
     analysis_result.sentiment = sentiment_result["label"]
     return analysis_result
 
-
 def publish_data(redis_client, producer_stream, data):
-    logging.info(f"publishing {len(data)} to {producer_stream}")
     serialized_data = data.SerializeToString()
+    logging.info(f"publishing {len(serialized_data)} bytes to {producer_stream}")
     redis_client.xadd(producer_stream, {"data": serialized_data})
-
 
 def main():
     __version__ = get_version()
@@ -137,7 +135,7 @@ def main():
     consumer_name = config.get("consumer_name", "analysis")
     redis_host = config.get("redis", {}).get("host", "localhost")
     redis_port = config.get("redis", {}).get("port", 6379)
-    redis_client = create_redis_client(redis_host, redis_port, True)
+    redis_client = create_redis_client(redis_host, redis_port, False)
     create_redis_consumer_group(redis_client, consumer_stream, consumer_group, 0, True)
 
     kw_model = KeyBERT()
@@ -149,6 +147,11 @@ def main():
             data = consume_stream(
                 redis_client, consumer_group, consumer_name, consumer_stream
             )
+
+            if data == None:
+                logging.info("no data consumed")
+                continue
+
         except Exception as e:
             logging.error(e)
             continue
