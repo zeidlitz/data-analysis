@@ -109,10 +109,14 @@ def analyze_data(data, nlp, kw_model, sentiment_pipeline):
     analysis_result.sentiment = sentiment_result["label"]
     return analysis_result
 
-def publish_data(redis_client, producer_stream, data):
+
+def publish_data(redis_client, producer_stream, data, maxlen):
     serialized_data = data.SerializeToString()
     logging.info(f"publishing {len(serialized_data)} bytes to {producer_stream}")
-    redis_client.xadd(producer_stream, {"data": serialized_data})
+    redis_client.xadd(
+        name=producer_stream, labels={"data": serialized_data}, maxlen=maxlen
+    )
+
 
 def main():
     __version__ = get_version()
@@ -135,6 +139,7 @@ def main():
     consumer_name = config.get("consumer_name", "analysis")
     redis_host = config.get("redis", {}).get("host", "localhost")
     redis_port = config.get("redis", {}).get("port", 6379)
+    redis_maxlen = config.get("redis", {}).get("maxlen", 100000)
     redis_client = create_redis_client(redis_host, redis_port, False)
     create_redis_consumer_group(redis_client, consumer_stream, consumer_group, 0, True)
 
@@ -156,7 +161,8 @@ def main():
             logging.error(e)
             continue
         output_data = analyze_data(data, nlp, kw_model, sentiment_pipeline)
-        publish_data(redis_client, producer_stream, output_data)
+        publish_data(redis_client, producer_stream, output_data, redis_maxlen)
+
 
 if __name__ == "__main__":
     main()
