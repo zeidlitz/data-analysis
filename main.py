@@ -114,7 +114,7 @@ def publish_data(redis_client, producer_stream, data, maxlen):
     serialized_data = data.SerializeToString()
     logging.info(f"publishing {len(serialized_data)} bytes to {producer_stream}")
     redis_client.xadd(
-        name=producer_stream, labels={"data": serialized_data}, maxlen=maxlen
+        name=producer_stream, fields={"data": serialized_data}, maxlen=maxlen
     )
 
 
