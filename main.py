@@ -101,13 +101,17 @@ def consume_stream(redis_client, consumer_group, consumer_name, consumer_stream)
 
 
 def analyze_data(data, nlp, kw_model, sentiment_pipeline):
-    analysis_result = AnalysisResult()
     categories = categorize_text(nlp, kw_model, data.body)
-    sentiment_result = sentiment_pipeline(data.body)[0]
-    analysis_result.raw_data.CopyFrom(data)
-    analysis_result.categories.extend(categories)
-    analysis_result.sentiment = sentiment_result["label"]
-    return analysis_result
+    try:
+        analysis_result = AnalysisResult()
+        sentiment_result = sentiment_pipeline(data.body)[0]
+        analysis_result.raw_data.CopyFrom(data)
+        analysis_result.categories.extend(categories)
+        analysis_result.sentiment = sentiment_result["label"]
+        return analysis_result
+    except RuntimeError as e:
+        logging.warning("runtime error when analysing", "categories", categories, "error", e)
+        return None
 
 
 def publish_data(redis_client, producer_stream, data, maxlen):
@@ -161,7 +165,8 @@ def main():
             logging.error(e)
             continue
         output_data = analyze_data(data, nlp, kw_model, sentiment_pipeline)
-        publish_data(redis_client, producer_stream, output_data, redis_maxlen)
+        if output_data is not None:
+            publish_data(redis_client, producer_stream, output_data, redis_maxlen)
 
 
 if __name__ == "__main__":
