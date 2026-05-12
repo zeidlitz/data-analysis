@@ -34,7 +34,7 @@ def parse_args():
     args = sys.argv
     nrArgs = len(args)
     if nrArgs == 1:
-        return "config.yaml"
+        return None
     if nrArgs > 2:
         raise ParseException(
             f"too many input arguments, recieved {nrArgs} need exactlly one. Recieved: {args[1:]}"
@@ -45,6 +45,20 @@ def parse_args():
 def load_config(path):
     with open(path, "r") as file:
         return yaml.safe_load(file)
+
+
+def load_config_from_env():
+    return {
+        "consumer_stream": os.environ.get("CONSUMER_STREAM", "data_extraction"),
+        "producer_stream": os.environ.get("PRODUCER_STREAM", "data_analysis"),
+        "consumer_group": os.environ.get("CONSUMER_GROUP", "data_analysis"),
+        "consumer_name": os.environ.get("CONSUMER_NAME", "analysis"),
+        "redis": {
+            "host": os.environ.get("REDIS_HOST", "localhost"),
+            "port": int(os.environ.get("REDIS_PORT", 6379)),
+            "maxlen": int(os.environ.get("REDIS_MAXLEN", 100000)),
+        },
+    }
 
 
 def create_redis_client(host, port, decode_responses) -> redis.Redis:
@@ -131,11 +145,15 @@ def main():
         print(e)
         os._exit(1)
 
-    try:
-        config = load_config(config_path)
-    except FileNotFoundError as e:
-        print(f"could not open config: {e} ")
-        os._exit(1)
+    if config_path is None:
+        logging.info("No config file supplied, loading config from environment variables")
+        config = load_config_from_env()
+    else:
+        try:
+            config = load_config(config_path)
+        except FileNotFoundError as e:
+            print(f"could not open config: {e} ")
+            os._exit(1)
 
     consumer_stream = config.get("consumer_stream", "data_extraction")
     producer_stream = config.get("producer_stream ", "data_analysis")
